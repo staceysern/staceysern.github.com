@@ -9,8 +9,9 @@
   <meta name="author" content="Stacey Sern">
 
   
-  <meta name="description" content="If there were a theme for my first two weeks as an Outreach Program for Women
-intern, it would be tutorials. As my project, I&rsquo;m maintaining the &hellip;">
+  <meta name="description" content="My focus for the past few weeks has been on reviewing the API
+documentation for Twisted Mail and filling in the missing pieces.
+Why bother with &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -64,6 +65,104 @@ intern, it would be tutorials. As my project, I&rsquo;m maintaining the &hellip;
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/18/api-documentation/">API Documentation</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-18T16:15:00-04:00" pubdate data-updated="true">Jul 18<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>My focus for the past few weeks has been on reviewing the API
+documentation for Twisted Mail and filling in the missing pieces.
+Why bother with documentation when there are bugs to fix and code to write?
+The quality of API documentation directly affects the experience that a
+developer has employing or further developing a library.
+It can be the difference between a piece of software being successfully integrated
+into a larger project or being discarded because the user just can&rsquo;t figure out
+how
+it works.</p>
+
+<p>The <a href="http://twistedmatrix.com/documents/current/api/">Twisted API documentation</a>
+is automatically generated from comments embedded in the source code.
+The <a href="http://twistedmatrix.com/documents/current/core/development/policy/coding-standard.html">Twisted Coding Standards</a>
+dictate that all methods, functions, classes, and modules have docstrings which
+describe their purpose and detail all parameters and attributes.
+The docstrings are written in
+<a href="http://epydoc.sourceforge.net/manual-epytext.html">Epytext Markup Language</a> and are processed
+by pydoctor, an API documentation generator, to produce the API documentation.
+Epytext provides a way to specify formatting information, to annotate
+parameters, return values and their types, and to create cross-reference links.
+Here&rsquo;s an example of a docstring written in Epytext:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
+</span><span class='line'>    <span class="sd">&quot;&quot;&quot;</span>
+</span><span class='line'><span class="sd">    Checks whether a user exists in a domain.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sd">    @param address: The user</span>
+</span><span class='line'><span class="sd">    @type address: L{Address}</span>
+</span><span class='line'>
+</span><span class='line'><span class="sd">    @param domain: The domain</span>
+</span><span class='line'><span class="sd">    @type domain: L{IDomain}</span>
+</span><span class='line'>
+</span><span class='line'><span class="sd">    @rtype: C{bool}</span>
+</span><span class='line'><span class="sd">    @return: C{True} if the user exists in the domain, </span>
+</span><span class='line'><span class="sd">             C{False} otherwise</span>
+</span><span class='line'><span class="sd">    &quot;&quot;&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And here’s the API documentation that would be generated from that docstring:</p>
+
+<p><img src="/images/exists.png"></p>
+
+<p>Currently, a good deal of Twisted Mail’s methods, functions, and classes are
+missing docstrings. Even those methods and functions which have docstrings
+often lack a full description of parameters, return values and their types.
+My task is to provide that missing information.  It&rsquo;s a great opportunity to
+dive deeply into the code.  And, once the code is fully documented, I&rsquo;ll find
+it much easier to fix bugs and introduce new features.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -213,6 +312,10 @@ area of documentation &ndash; the API. More on that to come.</p>
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/07/18/api-documentation/">API Documentation</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2013/06/30/tutorials/">Tutorials</a>

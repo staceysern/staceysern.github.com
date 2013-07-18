@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Measure Twice]]></title>
-  <link href="http://staceysern.github.io/atom.xml" rel="self"/>
+  <title><![CDATA[Category: OPW | Measure Twice]]></title>
+  <link href="http://staceysern.github.io/blog/categories/opw/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
   <updated>2013-07-18T16:47:13-04:00</updated>
   <id>http://staceysern.github.io/</id>
@@ -38,42 +38,30 @@ The docstrings are written in
 by pydoctor, an API documentation generator, to produce the API documentation.
 Epytext provides a way to specify formatting information, to annotate
 parameters, return values and their types, and to create cross-reference links.
-Here&rsquo;s an example of a docstring written in Epytext:</p>
+Here&rsquo;s an example of a docstring written in Epytext:
+``` python
+def exists(address, domain):</p>
 
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
-</span><span class='line'>    <span class="sd">&quot;&quot;&quot;</span>
-</span><span class='line'><span class="sd">    Checks whether a user exists in a domain.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sd">    @param address: The user</span>
-</span><span class='line'><span class="sd">    @type address: L{Address}</span>
-</span><span class='line'>
-</span><span class='line'><span class="sd">    @param domain: The domain</span>
-</span><span class='line'><span class="sd">    @type domain: L{IDomain}</span>
-</span><span class='line'>
-</span><span class='line'><span class="sd">    @rtype: C{bool}</span>
-</span><span class='line'><span class="sd">    @return: C{True} if the user exists in the domain, </span>
-</span><span class='line'><span class="sd">             C{False} otherwise</span>
-</span><span class='line'><span class="sd">    &quot;&quot;&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
+<pre><code>"""
+Checks whether a user exists in a domain.
 
+@param address: The user
+@type address: L{Address}
+
+@param domain: The domain
+@type domain: L{IDomain}
+
+@rtype: C{bool}
+@return: C{True} if the user exists in the domain, 
+         C{False} otherwise
+"""
+</code></pre>
+
+<p>```</p>
 
 <p>And here’s the API documentation that would be generated from that docstring:</p>
 
-<p><img src="http://staceysern.github.io/images/exists.png"></p>
+<p><img src="/images/exists.png"></p>
 
 <p>Currently, a good deal of Twisted Mail’s methods, functions, and classes are
 missing docstrings. Even those methods and functions which have docstrings
