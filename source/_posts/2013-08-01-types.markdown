@@ -1,0 +1,113 @@
+---
+layout: post
+title: "Types"
+date: 2013-08-01 14:42
+comments: true
+categories: [OPW, Twisted]
+---
+
+
+Much of the work of documenting the Twisted Mail API has involved searching
+through the Python code to determine the types for parameters and return values.
+It often involves comparing functions in different classes which inherit from
+the same base class or implement the same interface.
+In some cases, I've resorted to looking at unit tests or example code to see 
+how objects are used.
+After a recent experience while tracking down types, I'm more convinced than 
+ever of the value of the API documentation.
+
+I was documenting the alias module, which contains classes for redirecting mail
+from one user to another user, to a file, to a process, and to a group of 
+aliases. The four different alias classes inherit from the base class AliasBase 
+and implement the interface IAlias, which contains the function 
+createMessageReceiver.
+The class hierarchy looks like this:
+
+<pre>
+twisted.mail.alias.AliasBase
+    twisted.mail.alias.AddressAlias
+    twisted.mail.alias.AliasGroup
+    twisted.mail.alias.FileAlias
+    twisted.mail.alias.ProcessAlias
+</pre>
+
+I was trying to determine the return value of createMessageReceiver.
+The return value was clear for three of the four classes because the object 
+to be returned was created in the return statement.
+
+<pre>
+FileAlias -> FileWrapper 
+ProcessAlias -> MessageWrapper   
+AliasGroup -> MultiWrapper 
+</pre>
+
+The objects returned are all message receivers which implement the 
+smtp.IMessage interface.  They deliver a message to the appropriate place:
+a file, a process or a group of message receivers.
+It seemed pretty clear that the return value of the createMessageReceiver
+function in the IAlias interface should be smtp.IMessage.
+However, there was one more class that implemented the interface, AddressAlias,
+and the return value from that wasn't so clear.
+
+``` python
+class AddressAlias(AliasBase):
+    implements(IAlias)
+
+    def __init__(self, alias, *args):
+        AliasBase.__init__(self, *args)
+        self.alias = smtp.Address(alias)
+
+    def createMessageReceiver(self):
+        return self.domain().exists(str(self.alias))
+```
+
+AddressAlias.createMessageReceiver returns the result of a call to exists on the
+result of a call to domain.
+Domain is a base class function which returns an object which implements the 
+IDomain interface.
+Fortunately, the IDomain interface was documented.
+It returns a callable which takes no arguments and returns an object
+implementing IMessage.
+Unfortunately, this return value didn't match the pattern of the other three 
+alias classes.
+
+Although messy, it was possible that the return value of IAlias.createMessage
+was either an smtp.IMessage provider or a callable which takes no arguments and
+returns an smtp.IMessage provider.
+Or, it might have been a mistake.
+
+At this point, I fortuitously happened to be looking at this code in an old 
+branch and noticed a difference. There, the AddressAlias.createMessageReceiver
+function appeared as follows:
+
+``` python
+def createMessageReceiver(self): 
+    return self.domain().startMessage(str(self.alias)) 
+```
+
+After some investigation, I found a
+[ticket](https://twistedmatrix.com/trac/ticket/4151#4151) that had been fixed 
+earlier this year to remove calls to the deprecated IDomain.startMessage
+function.
+In the old code, startMessage also returns an IMessage provider.
+So, it seemed that a bug had been introduced in the switch from startMessage 
+to exists.
+
+The result of the call to exists must be invoked to get the proper message
+receiver to return. The code should read: 
+
+``` python
+def createMessageReceiver(self): 
+    return self.domain().exists(User(self.alias), None, None, None)()
+```
+
+I filed a [ticket](https://twistedmatrix.com/trac/ticket/6638#6638) in the 
+issue tracking system and subsequently submitted a fix. 
+While reworking the unit tests, I relied heavily on the API documentation I had
+written for the alias module.
+I think it's safe to say that had the API been fully documented when the 
+original change was made, this error would have been easy to spot during code 
+review or to avoid in the first place.
+
+
+
