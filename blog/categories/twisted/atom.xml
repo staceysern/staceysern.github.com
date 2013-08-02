@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Twisted | Measure Twice]]></title>
   <link href="http://staceysern.github.io/blog/categories/twisted/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
-  <updated>2013-07-18T16:47:13-04:00</updated>
+  <updated>2013-08-02T10:22:02-04:00</updated>
   <id>http://staceysern.github.io/</id>
   <author>
     <name><![CDATA[Stacey Sern]]></name>
@@ -12,6 +12,126 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Types]]></title>
+    <link href="http://staceysern.github.io/blog/2013/08/01/types/"/>
+    <updated>2013-08-01T14:42:00-04:00</updated>
+    <id>http://staceysern.github.io/blog/2013/08/01/types</id>
+    <content type="html"><![CDATA[<p>Much of the work of documenting the Twisted Mail API has involved searching
+through the Python code to determine the types for parameters and return values.
+It often involves comparing functions in different classes which inherit from
+the same base class or implement the same interface.
+In some cases, I&rsquo;ve resorted to looking at unit tests or example code to see
+how objects are used.
+After a recent experience while tracking down types, I&rsquo;m more convinced than
+ever of the value of the API documentation.</p>
+
+<p>I was documenting the alias module, which contains classes for redirecting mail
+from one user to another user, to a file, to a process, and to a group of
+aliases. The four different alias classes inherit from the base class AliasBase
+and implement the interface IAlias, which contains the function
+createMessageReceiver.
+The class hierarchy looks like this:</p>
+
+<pre>
+twisted.mail.alias.AliasBase
+    twisted.mail.alias.AddressAlias
+    twisted.mail.alias.AliasGroup
+    twisted.mail.alias.FileAlias
+    twisted.mail.alias.ProcessAlias
+</pre>
+
+
+<p>I was trying to determine the return value of createMessageReceiver.
+The return value was clear for three of the four classes because the object
+to be returned was created in the return statement.</p>
+
+<pre>
+FileAlias -> FileWrapper 
+ProcessAlias -> MessageWrapper   
+AliasGroup -> MultiWrapper 
+</pre>
+
+
+<p>The objects returned are all message receivers which implement the
+smtp.IMessage interface.  They deliver a message to the appropriate place:
+a file, a process or a group of message receivers.
+It seemed pretty clear that the return value of the createMessageReceiver
+function in the IAlias interface should be smtp.IMessage.
+However, there was one more class that implemented the interface, AddressAlias,
+and the return value from that wasn&rsquo;t so clear.</p>
+
+<p>``` python
+class AddressAlias(AliasBase):</p>
+
+<pre><code>implements(IAlias)
+
+def __init__(self, alias, *args):
+    AliasBase.__init__(self, *args)
+    self.alias = smtp.Address(alias)
+
+def createMessageReceiver(self):
+    return self.domain().exists(str(self.alias))
+</code></pre>
+
+<p>```</p>
+
+<p>AddressAlias.createMessageReceiver returns the result of a call to exists on the
+result of a call to domain.
+Domain is a base class function which returns an object which implements the
+IDomain interface.
+Fortunately, the IDomain interface was documented.
+It returns a callable which takes no arguments and returns an object
+implementing IMessage.
+Unfortunately, this return value didn&rsquo;t match the pattern of the other three
+alias classes.</p>
+
+<p>Although messy, it was possible that the return value of IAlias.createMessage
+was either an smtp.IMessage provider or a callable which takes no arguments and
+returns an smtp.IMessage provider.
+Or, it might have been a mistake.</p>
+
+<p>At this point, I fortuitously happened to be looking at this code in an old
+branch and noticed a difference. There, the AddressAlias.createMessageReceiver
+function appeared as follows:</p>
+
+<p>``` python
+def createMessageReceiver(self):</p>
+
+<pre><code>return self.domain().startMessage(str(self.alias)) 
+</code></pre>
+
+<p>```</p>
+
+<p>After some investigation, I found a
+<a href="https://twistedmatrix.com/trac/ticket/4151#4151">ticket</a> that had been fixed
+earlier this year to remove calls to the deprecated IDomain.startMessage
+function.
+In the old code, startMessage also returns an IMessage provider.
+So, it seemed that a bug had been introduced in the switch from startMessage
+to exists.</p>
+
+<p>The result of the call to exists must be invoked to get the proper message
+receiver to return. The code should read:</p>
+
+<p>``` python
+def createMessageReceiver(self):</p>
+
+<pre><code>return self.domain().exists(User(self.alias), None, None, None)()
+</code></pre>
+
+<p>```</p>
+
+<p>I filed a <a href="https://twistedmatrix.com/trac/ticket/6638#6638">ticket</a> in the
+issue tracking system and subsequently submitted a fix.
+While reworking the unit tests, I relied heavily on the API documentation I had
+written for the alias module.
+I think it&rsquo;s safe to say that had the API been fully documented when the
+original change was made, this error would have been easy to spot during code
+review or to avoid in the first place.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[API Documentation]]></title>
@@ -37,7 +157,7 @@ The docstrings are written in
 <a href="http://epydoc.sourceforge.net/manual-epytext.html">Epytext Markup Language</a> and are processed
 by pydoctor, an API documentation generator, to produce the API documentation.
 Epytext provides a way to specify formatting information, to annotate
-parameters, return values and their types, and to create cross-reference links.
+parameters, return values, and their types, and to create cross-reference links.
 Here&rsquo;s an example of a docstring written in Epytext:
 ``` python
 def exists(address, domain):</p>
@@ -64,7 +184,7 @@ Checks whether a user exists in a domain.
 <p><img src="/images/exists.png"></p>
 
 <p>Currently, a good deal of Twisted Mail’s methods, functions, and classes are
-missing docstrings. Even those methods and functions which have docstrings
+missing docstrings. Even those methods and functions that have docstrings
 often lack a full description of parameters, return values and their types.
 My task is to provide that missing information.  It&rsquo;s a great opportunity to
 dive deeply into the code.  And, once the code is fully documented, I&rsquo;ll find
@@ -86,13 +206,13 @@ aspects of Twisted in a project and submitted a couple of patches, but I hadn&rs
 used the mail subproject and wasn&rsquo;t familiar with any of the mail protocols
 that Twisted supports. Working through the mail example code and tutorials
 seemed like a good introduction and would allow me to evaluate how well the
-documentation meets the needs of new users. Further there were a few
+documentation meets the needs of new users. Further, there were a few
 outstanding tickets related to documentation that I&rsquo;d be able to work on
 straightaway.</p>
 
-<p>I found immediate success in running the examples of clients which use the
+<p>I found immediate success in running the examples of clients that use the
 IMAP4 protocol to access email from a remote server. I was also able to run a
-simple email server which uses SMTP to receive messages, although I had to read
+simple email server that uses SMTP to receive messages, although I had to read
 the source code to figure out from which address it would accept messages. When
 it came to the examples of clients which use SMTP to send messages, nothing
 worked.</p>
@@ -101,15 +221,15 @@ worked.</p>
 receives replies from a server in order to send mail. To investigate the
 problem with the SMTP client examples, I thought to use telnet to connect
 directly to the email server and issue the commands manually. Not only couldn&rsquo;t
-I connect with telnet to the servers used in the examples , I couldn&rsquo;t even
+I connect with telnet to the servers used in the examples, I couldn&rsquo;t even
 connect to a Google server. In all of these cases, I was attempting to connect
 on port 25, which is the well-known port for SMTP. My OPW mentor, Jessica
 McKellar, theorized that the problem was caused by my ISP blocking outbound
 traffic for port 25. Verizon&rsquo;s website confirms that they do this to prevent
 virus-infected computers from sending spam.</p>
 
-<p>With this problem in mind, I moved onto the tutorial on how to build SMTP
-clients. I ran into the same problem that had prompted a
+<p>With this problem in mind, I moved on to the tutorial on how to build SMTP
+clients. I ran into the same problem that had earlier prompted a
 <a href="http://twistedmatrix.com/trac/ticket/5685">trouble ticket</a>. The
 tutorial requires a server running on port 25 of localhost but it does not
 explicitly mention this requirement nor does it give directions for running
@@ -121,9 +241,9 @@ in the tutorial did not match what was actually generated by running the
 examples. This same complaint was documented in another open
 <a href="http://twistedmatrix.com/trac/ticket/6476">ticket</a>.</p>
 
-<p>I wasn&rsquo;t satisfied with the proposed solution since the user might well be
+<p>I wasn&rsquo;t satisfied with the proposed solution, since the user might well be
 blocked from contacting an external server on port 25. I thought the best
-solution might be to include directions on running a server locally to be used
+solution might be to include directions on running a server locally, to be used
 with the tutorial. With my limited knowledge of Twisted mail, I modified the
 example SMTP server to run on port 25 and accept mail from any user. There were
 some quirky requirements involved in running this server, but I was able to get
@@ -140,14 +260,14 @@ configuration, including the port, specified through command-line flags.</p>
 response to both tickets, one developer suggested that was futile since the
 output would vary based on release and platform and that it would be better
 just to mention in the tutorial that the listing was representative. He then
-closed the second ticket explaining why it wouldn&rsquo;t be fixed.</p>
+closed the second ticket, explaining why it wouldn&rsquo;t be fixed.</p>
 
 <p>In the discussion, one of the developers asked me to amend the first ticket to
 summarize the problem and specify the completion condition. I specified that
 the solution was to make the tutorial self-contained so that a user would need
 no external knowledge to work through it. Then I revised the tutorial to make
 it so. At the same time, I fixed some issues of formatting, punctuation,
-grammar, clarity and accuracy.</p>
+grammar, clarity, and accuracy.</p>
 
 <p>Before I could submit a patch, I needed to build the documentation. Similar to
 the process of building code, tools must be run on the raw form of the tutorial
