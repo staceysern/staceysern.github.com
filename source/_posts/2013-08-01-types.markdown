@@ -31,9 +31,9 @@ twisted.mail.alias.AliasBase
     twisted.mail.alias.ProcessAlias
 </pre>
 
-I was trying to determine the return value of `createMessageReceiver`.
-The return value was clear for three of the four classes because the object 
-to be returned was created in the return statement.
+I was trying to determine the return value of `IAlias.createMessageReceiver`.
+The return value was clear for three of the four classes that implement
+`IAlias` because the object to be returned was created in the return statement.
 
 <pre>
 FileAlias -> FileWrapper 
@@ -63,7 +63,7 @@ class AddressAlias(AliasBase):
 
 `AddressAlias.createMessageReceiver` returns the result of a call to `exists`
 on the result of a call to `domain`.
-`Domain` is a base class function which returns an object which implements the 
+`domain` is a base class function which returns an object which implements the 
 `IDomain` interface.
 Fortunately, the `IDomain` interface was documented.
 It returns a callable which takes no arguments and returns an object
@@ -72,7 +72,8 @@ Unfortunately, this return value didn't match the pattern of the other three
 classes implementing `IAlias.createMessageReceiver`, all of which return an
 object implementing `IMessage`.
 
-Although messy, it was possible that the return value of `IAlias.createMessage`
+Although messy, it was possible that the return value of
+`IAlias.createMessageReceiver`
 was either an `smtp.IMessage` provider or a callable which takes no arguments
 and returns an `smtp.IMessage` provider.
 Or, it might have been a mistake.
