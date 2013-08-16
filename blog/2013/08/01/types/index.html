@@ -115,9 +115,9 @@ twisted.mail.alias.AliasBase
 </pre>
 
 
-<p>I was trying to determine the return value of <code>createMessageReceiver</code>.
-The return value was clear for three of the four classes because the object
-to be returned was created in the return statement.</p>
+<p>I was trying to determine the return value of <code>IAlias.createMessageReceiver</code>.
+The return value was clear for three of the four classes that implement
+<code>IAlias</code> because the object to be returned was created in the return statement.</p>
 
 <pre>
 FileAlias -> FileWrapper 
@@ -157,7 +157,7 @@ However, there was one more class that implemented the interface,
 
 <p><code>AddressAlias.createMessageReceiver</code> returns the result of a call to <code>exists</code>
 on the result of a call to <code>domain</code>.
-<code>Domain</code> is a base class function which returns an object which implements the
+<code>domain</code> is a base class function which returns an object which implements the
 <code>IDomain</code> interface.
 Fortunately, the <code>IDomain</code> interface was documented.
 It returns a callable which takes no arguments and returns an object
@@ -166,7 +166,8 @@ Unfortunately, this return value didn&rsquo;t match the pattern of the other thr
 classes implementing <code>IAlias.createMessageReceiver</code>, all of which return an
 object implementing <code>IMessage</code>.</p>
 
-<p>Although messy, it was possible that the return value of <code>IAlias.createMessage</code>
+<p>Although messy, it was possible that the return value of
+<code>IAlias.createMessageReceiver</code>
 was either an <code>smtp.IMessage</code> provider or a callable which takes no arguments
 and returns an <code>smtp.IMessage</code> provider.
 Or, it might have been a mistake.</p>
@@ -255,6 +256,8 @@ review or to avoid in the first place.</p>
         <a class="basic-alignment left" href="/blog/2013/07/18/api-documentation/" title="Previous Post: API Documentation">&laquo; API Documentation</a>
       
       
+        <a class="basic-alignment right" href="/blog/2013/08/15/unit-tests/" title="Next Post: Unit Tests">Unit Tests &raquo;</a>
+      
     </p>
   </footer>
 </article>
@@ -266,6 +269,10 @@ review or to avoid in the first place.</p>
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/08/15/unit-tests/">Unit Tests</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2013/08/01/types/">Types</a>

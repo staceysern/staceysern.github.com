@@ -1,24 +1,96 @@
-<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Measure Twice]]></title>
-  <link href="http://staceysern.github.io/atom.xml" rel="self"/>
-  <link href="http://staceysern.github.io/"/>
-  <updated>2013-08-16T12:59:39-04:00</updated>
-  <id>http://staceysern.github.io/</id>
-  <author>
-    <name><![CDATA[Stacey Sern]]></name>
-    
-  </author>
-  <generator uri="http://octopress.org/">Octopress</generator>
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Unit Tests - Measure Twice</title>
+  <meta name="author" content="Stacey Sern">
 
   
-  <entry>
-    <title type="html"><![CDATA[Unit Tests]]></title>
-    <link href="http://staceysern.github.io/blog/2013/08/15/unit-tests/"/>
-    <updated>2013-08-15T07:04:00-04:00</updated>
-    <id>http://staceysern.github.io/blog/2013/08/15/unit-tests</id>
-    <content type="html"><![CDATA[<p>One of the first Twisted mail issue tickets I tackled involved  what seemed to
+  <meta name="description" content="One of the first Twisted mail issue tickets I tackled involved what seemed to
+be the simple matter of adding missing unit tests but led to some &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://staceysern.github.io/blog/2013/08/15/unit-tests">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Measure Twice" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Measure Twice</a></h1>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:staceysern.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Unit Tests</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-15T07:04:00-04:00" pubdate data-updated="true">Aug 15<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>One of the first Twisted mail issue tickets I tackled involved  what seemed to
 be the simple matter of adding missing unit tests but led to some refactoring
 of Twisted code.  The <a href="http://twistedmatrix.com/trac/ticket/6383">ticket</a>
 highlights the missing unit tests for the <code>startMessage</code> and <code>exists</code> functions
@@ -357,314 +429,122 @@ simple.</p>
 <code>DomainQueuer</code> certainly made the unit testing code much cleaner.  As a general
 matter, difficulty in writing unit tests may highlight dependencies in the code
 which should be refactored.</p>
-]]></content>
-  </entry>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
   
-  <entry>
-    <title type="html"><![CDATA[Types]]></title>
-    <link href="http://staceysern.github.io/blog/2013/08/01/types/"/>
-    <updated>2013-08-01T14:42:00-04:00</updated>
-    <id>http://staceysern.github.io/blog/2013/08/01/types</id>
-    <content type="html"><![CDATA[<p>Much of the work of documenting the Twisted Mail API has involved searching
-through the Python code to determine the types for parameters and return values.
-It often involves comparing functions in different classes which inherit from
-the same base class or implement the same interface.
-In some cases, I&rsquo;ve resorted to looking at unit tests or example code to see
-how objects are used.
-After a recent experience while tracking down types, I&rsquo;m more convinced than
-ever of the value of the API documentation.</p>
 
-<p>I was documenting the <code>alias</code> module, which contains classes for redirecting
-mail from one user to another user, to a file, to a process, and to a group of
-aliases. Four different classes inherit from the base class <code>AliasBase</code>
-and implement the interface <code>IAlias</code>, which contains the function
-<code>createMessageReceiver</code>.
-The class hierarchy looks like this:</p>
+<span class="byline author vcard">Posted by <span class="fn">Stacey Sern</span></span>
 
-<pre>
-twisted.mail.alias.AliasBase
-    twisted.mail.alias.AddressAlias
-    twisted.mail.alias.AliasGroup
-    twisted.mail.alias.FileAlias
-    twisted.mail.alias.ProcessAlias
-</pre>
+      
 
 
-<p>I was trying to determine the return value of <code>IAlias.createMessageReceiver</code>.
-The return value was clear for three of the four classes that implement
-<code>IAlias</code> because the object to be returned was created in the return statement.</p>
-
-<pre>
-FileAlias -> FileWrapper 
-ProcessAlias -> MessageWrapper   
-AliasGroup -> MultiWrapper 
-</pre>
 
 
-<p>The objects returned are all message receivers which implement the
-<code>smtp.IMessage</code> interface.  They deliver a message to the appropriate place:
-a file, a process or a group of message receivers.
-It seemed pretty clear that the return value of the <code>createMessageReceiver</code>
-function in the <code>IAlias</code> interface should be <code>smtp.IMessage</code>.
-However, there was one more class that implemented the interface,
-<code>AddressAlias</code>, and the return value from that wasn&rsquo;t so clear.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">AddressAlias</span><span class="p">(</span><span class="n">AliasBase</span><span class="p">):</span>
-</span><span class='line'>    <span class="n">implements</span><span class="p">(</span><span class="n">IAlias</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-</span><span class='line'>        <span class="n">AliasBase</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
-</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">alias</span> <span class="o">=</span> <span class="n">smtp</span><span class="o">.</span><span class="n">Address</span><span class="p">(</span><span class="n">alias</span><span class="p">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">def</span> <span class="nf">createMessageReceiver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class='line'>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">()</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">))</span>
-</span></code></pre></td></tr></table></div></figure>
 
 
-<p><code>AddressAlias.createMessageReceiver</code> returns the result of a call to <code>exists</code>
-on the result of a call to <code>domain</code>.
-<code>domain</code> is a base class function which returns an object which implements the
-<code>IDomain</code> interface.
-Fortunately, the <code>IDomain</code> interface was documented.
-It returns a callable which takes no arguments and returns an object
-implementing <code>IMessage</code>.
-Unfortunately, this return value didn&rsquo;t match the pattern of the other three
-classes implementing <code>IAlias.createMessageReceiver</code>, all of which return an
-object implementing <code>IMessage</code>.</p>
-
-<p>Although messy, it was possible that the return value of
-<code>IAlias.createMessageReceiver</code>
-was either an <code>smtp.IMessage</code> provider or a callable which takes no arguments
-and returns an <code>smtp.IMessage</code> provider.
-Or, it might have been a mistake.</p>
-
-<p>At this point, I fortuitously happened to be looking at this code in an old
-branch and noticed a difference. There, the
-<code>AddressAlias.createMessageReceiver</code> function appeared as follows:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">def</span> <span class="nf">createMessageReceiver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class='line'>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">()</span><span class="o">.</span><span class="n">startMessage</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">))</span>
-</span></code></pre></td></tr></table></div></figure>
 
 
-<p>After some investigation, I found a
-<a href="https://twistedmatrix.com/trac/ticket/4151#4151">ticket</a> that had been fixed
-earlier this year to remove calls to the deprecated <code>IDomain.startMessage</code>
-function.
-In the old code, <code>startMessage</code> also returns an <code>IMessage</code> provider.
-So, it seemed that a bug had been introduced in the switch from <code>startMessage</code>
-to <code>exists</code>.</p>
-
-<p>The result of the call to <code>exists</code> must be invoked to get the proper message
-receiver to return. The code should read:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">def</span> <span class="nf">createMessageReceiver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span class='line'>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="p">()</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">User</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="p">),</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>I filed a <a href="https://twistedmatrix.com/trac/ticket/6638#6638">ticket</a> in the
-issue tracking system and subsequently submitted a fix.
-While reworking the unit tests, I relied heavily on the API documentation I had
-written for the <code>alias</code> module.
-I think it&rsquo;s safe to say that had the API been fully documented when the
-original change was made, this error would have been easy to spot during code
-review or to avoid in the first place.</p>
-]]></content>
-  </entry>
   
-  <entry>
-    <title type="html"><![CDATA[API Documentation]]></title>
-    <link href="http://staceysern.github.io/blog/2013/07/18/api-documentation/"/>
-    <updated>2013-07-18T16:15:00-04:00</updated>
-    <id>http://staceysern.github.io/blog/2013/07/18/api-documentation</id>
-    <content type="html"><![CDATA[<p>My focus for the past few weeks has been on reviewing the API
-documentation for Twisted Mail and filling in the missing pieces.
-Why bother with documentation when there are bugs to fix and code to write?
-The quality of API documentation directly affects the experience that a
-developer has employing or further developing a library.
-It can be the difference between a piece of software being successfully integrated
-into a larger project or being discarded because the user just can&rsquo;t figure out
-how
-it works.</p>
-
-<p>The <a href="http://twistedmatrix.com/documents/current/api/">Twisted API documentation</a>
-is automatically generated from comments embedded in the source code.
-The <a href="http://twistedmatrix.com/documents/current/core/development/policy/coding-standard.html">Twisted Coding Standards</a>
-dictate that all methods, functions, classes, and modules have docstrings which
-describe their purpose and detail all parameters and attributes.
-The docstrings are written in
-<a href="http://epydoc.sourceforge.net/manual-epytext.html">Epytext Markup Language</a> and are processed
-by pydoctor, an API documentation generator, to produce the API documentation.
-Epytext provides a way to specify formatting information, to annotate
-parameters, return values, and their types, and to create cross-reference links.
-Here&rsquo;s an example of a docstring written in Epytext:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
-</span><span class='line'>    <span class="sd">&quot;&quot;&quot;</span>
-</span><span class='line'><span class="sd">    Checks whether a user exists in a domain.</span>
-</span><span class='line'>
-</span><span class='line'><span class="sd">    @param address: The user</span>
-</span><span class='line'><span class="sd">    @type address: L{Address}</span>
-</span><span class='line'>
-</span><span class='line'><span class="sd">    @param domain: The domain</span>
-</span><span class='line'><span class="sd">    @type domain: L{IDomain}</span>
-</span><span class='line'>
-</span><span class='line'><span class="sd">    @rtype: C{bool}</span>
-</span><span class='line'><span class="sd">    @return: C{True} if the user exists in the domain, </span>
-</span><span class='line'><span class="sd">             C{False} otherwise</span>
-</span><span class='line'><span class="sd">    &quot;&quot;&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
 
 
-<p>And here’s the API documentation that would be generated from that docstring:</p>
+<time datetime="2013-08-15T07:04:00-04:00" pubdate data-updated="true">Aug 15<span>th</span>, 2013</time>
+      
 
-<p><img src="http://staceysern.github.io/images/exists.png"></p>
-
-<p>Currently, a good deal of Twisted Mail’s methods, functions, and classes are
-missing docstrings. Even those methods and functions that have docstrings
-often lack a full description of parameters, return values and their types.
-My task is to provide that missing information.  It&rsquo;s a great opportunity to
-dive deeply into the code.  And, once the code is fully documented, I&rsquo;ll find
-it much easier to fix bugs and introduce new features.</p>
-]]></content>
-  </entry>
+<span class="categories">
   
-  <entry>
-    <title type="html"><![CDATA[Tutorials]]></title>
-    <link href="http://staceysern.github.io/blog/2013/06/30/tutorials/"/>
-    <updated>2013-06-30T20:37:00-04:00</updated>
-    <id>http://staceysern.github.io/blog/2013/06/30/tutorials</id>
-    <content type="html"><![CDATA[<p>If there were a theme for my first two weeks as an Outreach Program for Women
-intern, it would be tutorials. As my project, I&rsquo;m maintaining the mail portion
-of Twisted, an event-driven, networking framework in Python. I&rsquo;ll be working to
-improve the documentation, make progress on partially completed tickets, and
-attack some new defect and enhancement tickets. Up until now, I had used several
-aspects of Twisted in a project and submitted a couple of patches, but I hadn&rsquo;t
-used the mail subproject and wasn&rsquo;t familiar with any of the mail protocols
-that Twisted supports. Working through the mail example code and tutorials
-seemed like a good introduction and would allow me to evaluate how well the
-documentation meets the needs of new users. Further, there were a few
-outstanding tickets related to documentation that I&rsquo;d be able to work on
-straightaway.</p>
-
-<p>I found immediate success in running the examples of clients that use the
-IMAP4 protocol to access email from a remote server. I was also able to run a
-simple email server that uses SMTP to receive messages, although I had to read
-the source code to figure out from which address it would accept messages. When
-it came to the examples of clients which use SMTP to send messages, nothing
-worked.</p>
-
-<p>SMTP is a text-based protocol in which a client issues a series of commands and
-receives replies from a server in order to send mail. To investigate the
-problem with the SMTP client examples, I thought to use telnet to connect
-directly to the email server and issue the commands manually. Not only couldn&rsquo;t
-I connect with telnet to the servers used in the examples, I couldn&rsquo;t even
-connect to a Google server. In all of these cases, I was attempting to connect
-on port 25, which is the well-known port for SMTP. My OPW mentor, Jessica
-McKellar, theorized that the problem was caused by my ISP blocking outbound
-traffic for port 25. Verizon&rsquo;s website confirms that they do this to prevent
-virus-infected computers from sending spam.</p>
-
-<p>With this problem in mind, I moved on to the tutorial on how to build SMTP
-clients. I ran into the same problem that had earlier prompted a
-<a href="http://twistedmatrix.com/trac/ticket/5685">trouble ticket</a>. The
-tutorial requires a server running on port 25 of localhost but it does not
-explicitly mention this requirement nor does it give directions for running
-such a server. A patch had been submitted to explicitly mention the requirement
-and suggest that the user could change the example to use an external SMTP
-server. A review of that patch had found no problem with the change in wording.
-The review, however, raised an ancillary issue, noting that the output listed
-in the tutorial did not match what was actually generated by running the
-examples. This same complaint was documented in another open
-<a href="http://twistedmatrix.com/trac/ticket/6476">ticket</a>.</p>
-
-<p>I wasn&rsquo;t satisfied with the proposed solution, since the user might well be
-blocked from contacting an external server on port 25. I thought the best
-solution might be to include directions on running a server locally, to be used
-with the tutorial. With my limited knowledge of Twisted mail, I modified the
-example SMTP server to run on port 25 and accept mail from any user. There were
-some quirky requirements involved in running this server, but I was able to get
-through the tutorial with it.</p>
-
-<p>Although I had gotten the tutorial working with a local server, I suspected
-that my solution might not be the most elegant. Rather than submit a patch and
-upon review learn of a better way to solve the problem, I thought it prudent to
-consult with the Twisted developer community on the twisted-dev IRC channel. I
-learned that I could use the twistd utility to start up a mail server with its
-configuration, including the port, specified through command-line flags.</p>
-
-<p>When I mentioned that I planned to update the output listing in the tutorial in
-response to both tickets, one developer suggested that was futile since the
-output would vary based on release and platform and that it would be better
-just to mention in the tutorial that the listing was representative. He then
-closed the second ticket, explaining why it wouldn&rsquo;t be fixed.</p>
-
-<p>In the discussion, one of the developers asked me to amend the first ticket to
-summarize the problem and specify the completion condition. I specified that
-the solution was to make the tutorial self-contained so that a user would need
-no external knowledge to work through it. Then I revised the tutorial to make
-it so. At the same time, I fixed some issues of formatting, punctuation,
-grammar, clarity, and accuracy.</p>
-
-<p>Before I could submit a patch, I needed to build the documentation. Similar to
-the process of building code, tools must be run on the raw form of the tutorial
-to produce nicely formatted output. Twisted includes a documentation generator
-tool called lore which translates XHTML input with annotations to indicate,
-among other things, links to API documentation and code listings into HTML
-output.</p>
-
-<p>My patch received a quick review. In addition to some requests for minor
-changes and clarifications, the review included some comments which seemed to
-suggest that the examples used in the the tutorial might not best represent how
-to write an SMTP client. I was concerned because the ticket was currently
-limited in scope to making the tutorial self-contained. Changing the examples,
-while possibly an improvement, would require significantly reworking the
-tutorial. In the IRC channel, I asked for confirmation that this was what was
-being suggested and if so, should it be done as part of the same ticket. The
-consensus was that the suggestion constituted scope creep and should be
-addressed in a separate ticket. Now, I am left to submit a few minor revisions
-to hopefully close out the ticket.</p>
-
-<p>If that weren&rsquo;t enough in the way of tutorials, I also tackled a new tutorial
-on building SMTP servers. Comments had been sitting in the
-<a href="http://twistedmatrix.com/trac/ticket/3324">ticket</a> for nine
-months. In addition to incorporating the comments, I edited the document and
-modified the presentation of some examples to hopefully make them more clear. I
-found the final example, which is meant to explain how to use the
-<code>IMessageDeliveryFactory</code> interface, to be lacking and wrote a new example to
-better showcase it. The changes are nearly ready to be submitted.</p>
-
-<p>Work on these tutorials will continue but my focus is now turning to another
-area of documentation &ndash; the API. More on that to come.</p>
-]]></content>
-  </entry>
+    <a class='category' href='/blog/categories/opw/'>OPW</a>, <a class='category' href='/blog/categories/twisted/'>Twisted</a>
   
-</feed>
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://staceysern.github.io/blog/2013/08/15/unit-tests/" data-via="" data-counturl="http://staceysern.github.io/blog/2013/08/15/unit-tests/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/08/01/types/" title="Previous Post: Types">&laquo; Types</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/08/15/unit-tests/">Unit Tests</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/08/01/types/">Types</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/07/18/api-documentation/">API Documentation</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/30/tutorials/">Tutorials</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Stacey Sern -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

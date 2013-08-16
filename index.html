@@ -9,8 +9,8 @@
   <meta name="author" content="Stacey Sern">
 
   
-  <meta name="description" content="Much of the work of documenting the Twisted Mail API has involved searching
-through the Python code to determine the types for parameters and return &hellip;">
+  <meta name="description" content="One of the first Twisted mail issue tickets I tackled involved what seemed to
+be the simple matter of adding missing unit tests but led to some &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -70,6 +70,380 @@ through the Python code to determine the types for parameters and return &hellip
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2013/08/15/unit-tests/">Unit Tests</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-08-15T07:04:00-04:00" pubdate data-updated="true">Aug 15<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>One of the first Twisted mail issue tickets I tackled involved  what seemed to
+be the simple matter of adding missing unit tests but led to some refactoring
+of Twisted code.  The <a href="http://twistedmatrix.com/trac/ticket/6383">ticket</a>
+highlights the missing unit tests for the <code>startMessage</code> and <code>exists</code> functions
+of both the <code>AbstractMaildirDomain</code> and <code>DomainQueuer</code> classes.</p>
+
+<p><code>AbstractMaildirDomain</code> is a base class which is meant to be subclassed to
+create mail domains where the emails are stored in the Maildir format.  Most of
+the functions it provides are placeholders that need to be overridden in
+subclasses.  However, it does provide implementations for two functions,
+<code>exists</code> and <code>startMessage</code>.  <code>exists</code> checks whether a user exists in the
+domain or an alias of it and, if so, returns a callable which returns a
+<code>MaildirMessage</code> to store a message for the user. Otherwise, it raises an
+<code>SMTPBadRcpt</code> exception.  <code>startMessage</code> returns a <code>MaildirMessage</code>
+which stores a message for the user.</p>
+
+<p>The existing unit tests for <code>AbstractMaildirDomain</code> were minimal, checking just
+that it fully implemented the <code>IAliasableDomain</code> interface.
+Additional test cases were needed to verify that:</p>
+
+<ul>
+<li><code>startMessage</code> returns a <code>MaildirMessage</code></li>
+<li>for a valid user, <code>exists</code> returns a callable which
+returns a <code>MaildirMessage</code> and that the callable returns distinct messages
+when called multiple times</li>
+<li>for an invalid user, <code>exists</code> raises <code>SMTPBadRcpt</code></li>
+</ul>
+
+
+<p><code>AbstractMaildirDomain</code> could not be used directly in testing <code>exists</code> and
+<code>startMessage</code> because both call a function which has only a placeholder in the
+base class.  So for testing purposes, I created a subclass of
+<code>AbstractMaildirDomain</code>, <code>TestMaildirDomain</code>, which overrides the placeholder
+functions.</p>
+
+<p>Since each test would need a <code>TestMaildirDomain</code> to exercise, I wrote a <code>setUp</code>
+function which runs prior to the test and creates a <code>TestMaildirDomain</code> as well
+as a temporary Maildir directory for it to use.  I also added a <code>tearDown</code>
+function which runs after each test to remove the temporary directory.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">AbstractMaildirDomainTestCase</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mktemp</span><span class="p">()</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">service</span> <span class="o">=</span> <span class="n">mail</span><span class="o">.</span><span class="n">mail</span><span class="o">.</span><span class="n">MailService</span><span class="p">()</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span> <span class="o">=</span> <span class="n">TestMaildirDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">service</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">addUser</span><span class="p">(</span><span class="s">&#39;user&#39;</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">tearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The tests for <code>startMessage</code> and <code>exists</code> turned out to be pretty
+straightforward:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">def</span> <span class="nf">test_startMessage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>    <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">startMessage</span><span class="p">(</span><span class="s">&#39;user@&#39;</span><span class="p">)</span>
+</span><span class='line'>    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">maildir</span><span class="o">.</span><span class="n">MaildirMessage</span><span class="p">))</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">test_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>    <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mail</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="s">&quot;user@&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+</span><span class='line'>    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">callable</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+</span><span class='line'>    <span class="n">msg1</span> <span class="o">=</span> <span class="n">f</span><span class="p">()</span>
+</span><span class='line'>    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">msg1</span><span class="p">,</span> <span class="n">mail</span><span class="o">.</span><span class="n">maildir</span><span class="o">.</span><span class="n">MaildirMessage</span><span class="p">))</span>
+</span><span class='line'>    <span class="n">msg2</span> <span class="o">=</span> <span class="n">f</span><span class="p">()</span>
+</span><span class='line'>    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">msg1</span> <span class="o">!=</span> <span class="n">msg2</span><span class="p">)</span>
+</span><span class='line'>    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">msg1</span><span class="o">.</span><span class="n">finalName</span> <span class="o">!=</span> <span class="n">msg2</span><span class="o">.</span><span class="n">finalName</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">test_doesntexist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">mail</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">SMTPBadRcpt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">exists</span><span class="p">,</span>
+</span><span class='line'>            <span class="n">mail</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="s">&quot;nonexistentuser@&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Like <code>AbstractMaildirDomain</code>, <code>DomainQueuer</code> acts as a domain, but instead of
+saving emails for users, it puts messages in a queue for relaying. Its
+<code>exists</code> and <code>startMessage</code> functions are meant to be used in
+the same way as those of <code>AbstractMaildirDomain</code>.   It seemed like it would be
+an easy matter to adapt the unit tests for <code>AbstractMaildirDomain</code> to work for
+<code>DomainQueuer</code>.</p>
+
+<p>It turned out, however, that the test for <code>exists</code> on <code>DomainQueuer</code> failed
+because a function was being called on a variable set to <code>None</code>.  Something
+clearly hadn&rsquo;t been properly configured for the test.</p>
+
+<p>Here&rsquo;s the <code>DomainQueuer</code> code being exercised in the test:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">DomainQueuer</span><span class="p">:</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
+</span><span class='line'>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">willRelay</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">protocol</span><span class="p">):</span>
+</span><span class='line'>            <span class="o">...</span>
+</span><span class='line'>        <span class="k">raise</span> <span class="n">smtp</span><span class="o">.</span><span class="n">SMTPBadRcpt</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">willRelay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">protocol</span><span class="p">):</span>
+</span><span class='line'>        <span class="n">peer</span> <span class="o">=</span> <span class="n">protocol</span><span class="o">.</span><span class="n">transport</span><span class="o">.</span><span class="n">getPeer</span><span class="p">()</span>
+</span><span class='line'>        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">authed</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">peer</span><span class="p">,</span> <span class="n">UNIXAddress</span><span class="p">)</span> <span class="ow">or</span>
+</span><span class='line'>            <span class="n">peer</span><span class="o">.</span><span class="n">host</span> <span class="o">==</span> <span class="s">&#39;127.0.0.1&#39;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>exists</code> calls <code>willRelay</code> with the <code>protocol</code> which was passed into it as part
+of the <code>user</code> argument.  <code>willRelay</code>  tries to call <code>getPeer</code> on the
+<code>transport</code> instance variable of the <code>protocol</code>.  But, the minimal <code>User</code>
+object passed to <code>exists</code>, which worked for the <code>AbstractMaildirDomain</code> test,
+is not sufficient for the <code>DomainQueuer</code> test.  <code>willRelay</code> needs the <code>protocol</code>
+to determine whether it should relay the message.</p>
+
+<p>I had two thoughts about how to get around this problem, but I wasn&rsquo;t sure
+either of them was satisfactory.  One option would be to provide the <code>User</code>
+object with a fake protocol and fake transport so that <code>willRelay</code> could be
+configured to return the desired value.  That seemed to be a very roundabout
+way to solve the problem of getting <code>willRelay</code> to return a specific boolean
+value.</p>
+
+<p>A more direct way to get <code>willRelay</code> to return the desired value would be to
+monkeypatch it.  That is, as part of the unit test, to replace the
+<code>DomainQueuer.willRelay</code> function with one that returns the desired value.  The
+problem with monkeypatching is that, even though <code>willRelay</code> is part of the
+public interface of <code>DomainQueuer</code>, it could change in the future.  For
+example, it could received additional optional arguments.  Then, the unit
+test which used the monkeypatched version might not reflect the behavior of
+the real version of <code>willRelay</code>.</p>
+
+<p>I got some great advice about how to approach this problem and unit testing in
+general on the Twisted developers IRC channel.  The idea behind unit testing is
+to test each unit of code independently.  Here we can consider <code>exists</code> and
+<code>willRelay</code> to be two different units.  But the way <code>willRelay</code> is implemented
+means that it is difficult to test <code>exists</code> independent of it.  I was advised
+that sometimes the best thing to do when adding unit tests is to refactor the
+code itself.  So, I attempted to do that without changing the public interface
+of <code>DomainQueuer</code>.</p>
+
+<p>I introduced a base class, <code>AbstractRelayRules</code>, whose purpose is to
+encapsulate the rules for determining whether a message should be relayed.
+Then, I defined a subclass, <code>DomainQueuerRelayRules</code>, which contains the
+default rules for the <code>DomainQueuer</code> class.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">AbstractRelayRules</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class='line'>    <span class="sd">&quot;&quot;&quot;</span>
+</span><span class='line'><span class="sd">    A base class for relay rules which determine whether a message</span>
+</span><span class='line'><span class="sd">    should be relayed.</span>
+</span><span class='line'><span class="sd">    &quot;&quot;&quot;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">willRelay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">protocol</span><span class="p">,</span> <span class="n">authorized</span><span class="p">):</span>
+</span><span class='line'>        <span class="sd">&quot;&quot;&quot;</span>
+</span><span class='line'><span class="sd">        Determine whether a message should be relayed.</span>
+</span><span class='line'><span class="sd">        &quot;&quot;&quot;</span>
+</span><span class='line'>        <span class="k">return</span> <span class="bp">False</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="k">class</span> <span class="nc">DomainQueuerRelayRules</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+</span><span class='line'>    <span class="sd">&quot;&quot;&quot;</span>
+</span><span class='line'><span class="sd">    The default relay rules for a DomainQueuer.</span>
+</span><span class='line'><span class="sd">    &quot;&quot;&quot;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">willRelay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">protocol</span><span class="p">,</span> <span class="n">authorized</span><span class="p">):</span>
+</span><span class='line'>        <span class="sd">&quot;&quot;&quot;</span>
+</span><span class='line'><span class="sd">        Determine whether a message should be relayed.</span>
+</span><span class='line'>
+</span><span class='line'><span class="sd">        Relay for all messages received over UNIX sockets or from </span>
+</span><span class='line'><span class="sd">        localhost or when the message originator has been authenticated.</span>
+</span><span class='line'><span class="sd">        &quot;&quot;&quot;</span>
+</span><span class='line'>        <span class="n">peer</span> <span class="o">=</span> <span class="n">protocol</span><span class="o">.</span><span class="n">transport</span><span class="o">.</span><span class="n">getPeer</span><span class="p">()</span>
+</span><span class='line'>        <span class="k">return</span> <span class="p">(</span><span class="n">authorized</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">peer</span><span class="p">,</span> <span class="n">UNIXAddress</span><span class="p">)</span> <span class="ow">or</span>
+</span><span class='line'>            <span class="n">peer</span><span class="o">.</span><span class="n">host</span> <span class="o">==</span> <span class="s">&#39;127.0.0.1&#39;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In <code>DomainQueuer</code>, I changed the <code>__init__</code> function to take a new optional
+parameter specifying the rules to be used to determine whether to relay.  When
+<code>relayRules</code> is not provided, the default <code>DomainQueuerRelayRules</code> is used.  I
+also changed the <code>willRelay</code> function to ask the <code>relayRules</code> whether to relay
+instead of determining that itself.  Existing code which creates a
+<code>DomainQueuer</code> without providing the extra argument works in the exact same way
+as the old code.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">DomainQueuer</span><span class="p">:</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">authenticated</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">relayRules</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">relayRules</span> <span class="o">=</span> <span class="n">relayRules</span>
+</span><span class='line'>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">relayRules</span><span class="p">:</span>
+</span><span class='line'>            <span class="bp">self</span><span class="o">.</span><span class="n">relayRules</span> <span class="o">=</span> <span class="n">DomainQueuerRelayRules</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">willRelay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">protocol</span><span class="p">):</span>
+</span><span class='line'>        <span class="sd">&quot;&quot;&quot;</span>
+</span><span class='line'><span class="sd">        Determine whether a message should be relayed according</span>
+</span><span class='line'><span class="sd">        to the relay rules.</span>
+</span><span class='line'><span class="sd">        &quot;&quot;&quot;</span>
+</span><span class='line'>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">relayRules</span><span class="o">.</span><span class="n">willRelay</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">protocol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">authed</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, I created another subclass of <code>AbstractRelayRules</code> to be used for
+test purposes. <code>TestRelayRules</code> can be configured with a boolean value which
+determines whether relaying is allowed or not.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">TestRelayRules</span><span class="p">(</span><span class="n">mail</span><span class="o">.</span><span class="n">relay</span><span class="o">.</span><span class="n">AbstractRelayRules</span><span class="p">):</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relay</span><span class="p">):</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">relay</span> <span class="o">=</span> <span class="n">relay</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">willRelay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">protocol</span><span class="p">,</span> <span class="n">authorized</span><span class="p">):</span>
+</span><span class='line'>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">relay</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now, the unit tests for <code>DomainQueuer.exists</code> using <code>TestRelayRules</code> are quite
+simple.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">DomainQueuerTestCase</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">test_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>        <span class="n">dq</span> <span class="o">=</span> <span class="n">mail</span><span class="o">.</span><span class="n">relay</span><span class="o">.</span><span class="n">DomainQueuer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">service</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">TestRelayRules</span><span class="p">(</span><span class="bp">True</span><span class="p">))</span>
+</span><span class='line'>        <span class="n">f</span> <span class="o">=</span> <span class="n">dq</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mail</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="s">&quot;user@&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">callable</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+</span><span class='line'>        <span class="n">msg1</span> <span class="o">=</span> <span class="n">f</span><span class="p">()</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">msg1</span><span class="p">,</span> <span class="n">mail</span><span class="o">.</span><span class="n">mail</span><span class="o">.</span><span class="n">FileMessage</span><span class="p">))</span>
+</span><span class='line'>        <span class="n">msg2</span> <span class="o">=</span> <span class="n">f</span><span class="p">()</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">msg1</span> <span class="o">!=</span> <span class="n">msg2</span><span class="p">)</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">msg1</span><span class="o">.</span><span class="n">finalName</span> <span class="o">!=</span> <span class="n">msg2</span><span class="o">.</span><span class="n">finalName</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">test_doesntexist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>        <span class="n">dq</span> <span class="o">=</span> <span class="n">mail</span><span class="o">.</span><span class="n">relay</span><span class="o">.</span><span class="n">DomainQueuer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">service</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">TestRelayRules</span><span class="p">(</span><span class="bp">False</span><span class="p">))</span>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">mail</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">SMTPBadRcpt</span><span class="p">,</span> <span class="n">dq</span><span class="o">.</span><span class="n">exists</span><span class="p">,</span>
+</span><span class='line'>                <span class="n">mail</span><span class="o">.</span><span class="n">smtp</span><span class="o">.</span><span class="n">User</span><span class="p">(</span><span class="s">&quot;user@&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Refactoring to decouple the rules for relaying messages from the
+<code>DomainQueuer</code> certainly made the unit testing code much cleaner.  As a general
+matter, difficulty in writing unit tests may highlight dependencies in the code
+which should be refactored.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2013/08/01/types/">Types</a></h1>
     
     
@@ -118,9 +492,9 @@ twisted.mail.alias.AliasBase
 </pre>
 
 
-<p>I was trying to determine the return value of <code>createMessageReceiver</code>.
-The return value was clear for three of the four classes because the object
-to be returned was created in the return statement.</p>
+<p>I was trying to determine the return value of <code>IAlias.createMessageReceiver</code>.
+The return value was clear for three of the four classes that implement
+<code>IAlias</code> because the object to be returned was created in the return statement.</p>
 
 <pre>
 FileAlias -> FileWrapper 
@@ -160,7 +534,7 @@ However, there was one more class that implemented the interface,
 
 <p><code>AddressAlias.createMessageReceiver</code> returns the result of a call to <code>exists</code>
 on the result of a call to <code>domain</code>.
-<code>Domain</code> is a base class function which returns an object which implements the
+<code>domain</code> is a base class function which returns an object which implements the
 <code>IDomain</code> interface.
 Fortunately, the <code>IDomain</code> interface was documented.
 It returns a callable which takes no arguments and returns an object
@@ -169,7 +543,8 @@ Unfortunately, this return value didn&rsquo;t match the pattern of the other thr
 classes implementing <code>IAlias.createMessageReceiver</code>, all of which return an
 object implementing <code>IMessage</code>.</p>
 
-<p>Although messy, it was possible that the return value of <code>IAlias.createMessage</code>
+<p>Although messy, it was possible that the return value of
+<code>IAlias.createMessageReceiver</code>
 was either an <code>smtp.IMessage</code> provider or a callable which takes no arguments
 and returns an <code>smtp.IMessage</code> provider.
 Or, it might have been a mistake.</p>
@@ -463,6 +838,10 @@ area of documentation &ndash; the API. More on that to come.</p>
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/08/15/unit-tests/">Unit Tests</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2013/08/01/types/">Types</a>

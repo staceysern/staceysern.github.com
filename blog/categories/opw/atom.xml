@@ -4,7 +4,7 @@
   <title><![CDATA[Category: OPW | Measure Twice]]></title>
   <link href="http://staceysern.github.io/blog/categories/opw/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
-  <updated>2013-08-15T06:54:23-04:00</updated>
+  <updated>2013-08-16T12:59:39-04:00</updated>
   <id>http://staceysern.github.io/</id>
   <author>
     <name><![CDATA[Stacey Sern]]></name>
@@ -12,6 +12,267 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Unit Tests]]></title>
+    <link href="http://staceysern.github.io/blog/2013/08/15/unit-tests/"/>
+    <updated>2013-08-15T07:04:00-04:00</updated>
+    <id>http://staceysern.github.io/blog/2013/08/15/unit-tests</id>
+    <content type="html"><![CDATA[<p>One of the first Twisted mail issue tickets I tackled involved  what seemed to
+be the simple matter of adding missing unit tests but led to some refactoring
+of Twisted code.  The <a href="http://twistedmatrix.com/trac/ticket/6383">ticket</a>
+highlights the missing unit tests for the <code>startMessage</code> and <code>exists</code> functions
+of both the <code>AbstractMaildirDomain</code> and <code>DomainQueuer</code> classes.</p>
+
+<p><code>AbstractMaildirDomain</code> is a base class which is meant to be subclassed to
+create mail domains where the emails are stored in the Maildir format.  Most of
+the functions it provides are placeholders that need to be overridden in
+subclasses.  However, it does provide implementations for two functions,
+<code>exists</code> and <code>startMessage</code>.  <code>exists</code> checks whether a user exists in the
+domain or an alias of it and, if so, returns a callable which returns a
+<code>MaildirMessage</code> to store a message for the user. Otherwise, it raises an
+<code>SMTPBadRcpt</code> exception.  <code>startMessage</code> returns a <code>MaildirMessage</code>
+which stores a message for the user.</p>
+
+<p>The existing unit tests for <code>AbstractMaildirDomain</code> were minimal, checking just
+that it fully implemented the <code>IAliasableDomain</code> interface.
+Additional test cases were needed to verify that:</p>
+
+<ul>
+<li><code>startMessage</code> returns a <code>MaildirMessage</code></li>
+<li>for a valid user, <code>exists</code> returns a callable which
+returns a <code>MaildirMessage</code> and that the callable returns distinct messages
+when called multiple times</li>
+<li>for an invalid user, <code>exists</code> raises <code>SMTPBadRcpt</code></li>
+</ul>
+
+
+<p><code>AbstractMaildirDomain</code> could not be used directly in testing <code>exists</code> and
+<code>startMessage</code> because both call a function which has only a placeholder in the
+base class.  So for testing purposes, I created a subclass of
+<code>AbstractMaildirDomain</code>, <code>TestMaildirDomain</code>, which overrides the placeholder
+functions.</p>
+
+<p>Since each test would need a <code>TestMaildirDomain</code> to exercise, I wrote a <code>setUp</code>
+function which runs prior to the test and creates a <code>TestMaildirDomain</code> as well
+as a temporary Maildir directory for it to use.  I also added a <code>tearDown</code>
+function which runs after each test to remove the temporary directory.</p>
+
+<p>``` python
+class AbstractMaildirDomainTestCase(unittest.TestCase):</p>
+
+<pre><code>def setUp(self):
+    self.root = self.mktemp()
+    self.service = mail.mail.MailService()
+    self.domain = TestMaildirDomain(self.service, self.root)
+    self.domain.addUser('user',"")
+
+def tearDown(self):
+    shutil.rmtree(self.root)
+</code></pre>
+
+<p>```</p>
+
+<p>The tests for <code>startMessage</code> and <code>exists</code> turned out to be pretty
+straightforward:</p>
+
+<p>``` python</p>
+
+<pre><code>def test_startMessage(self):
+    msg = self.domain.startMessage('user@')
+    self.assertTrue(isinstance(msg, maildir.MaildirMessage))
+
+def test_exists(self):
+    f = self.domain.exists(mail.smtp.User("user@", None, None, None))
+    self.assertTrue(callable(f))
+    msg1 = f()
+    self.assertTrue(isinstance(msg1, mail.maildir.MaildirMessage))
+    msg2 = f()
+    self.assertTrue(msg1 != msg2)
+    self.assertTrue(msg1.finalName != msg2.finalName)
+
+def test_doesntexist(self):
+    self.assertRaises(mail.smtp.SMTPBadRcpt, self.domain.exists,
+            mail.smtp.User("nonexistentuser@", None, None, None))
+</code></pre>
+
+<p>```</p>
+
+<p>Like <code>AbstractMaildirDomain</code>, <code>DomainQueuer</code> acts as a domain, but instead of
+saving emails for users, it puts messages in a queue for relaying. Its
+<code>exists</code> and <code>startMessage</code> functions are meant to be used in
+the same way as those of <code>AbstractMaildirDomain</code>.   It seemed like it would be
+an easy matter to adapt the unit tests for <code>AbstractMaildirDomain</code> to work for
+<code>DomainQueuer</code>.</p>
+
+<p>It turned out, however, that the test for <code>exists</code> on <code>DomainQueuer</code> failed
+because a function was being called on a variable set to <code>None</code>.  Something
+clearly hadn&rsquo;t been properly configured for the test.</p>
+
+<p>Here&rsquo;s the <code>DomainQueuer</code> code being exercised in the test:</p>
+
+<p>``` python
+class DomainQueuer:</p>
+
+<pre><code>def exists(self, user):
+    if self.willRelay(user.dest, user.protocol):
+        ...
+    raise smtp.SMTPBadRcpt(user)
+
+def willRelay(self, address, protocol):
+    peer = protocol.transport.getPeer()
+    return (self.authed or isinstance(peer, UNIXAddress) or
+        peer.host == '127.0.0.1')
+</code></pre>
+
+<p>```</p>
+
+<p><code>exists</code> calls <code>willRelay</code> with the <code>protocol</code> which was passed into it as part
+of the <code>user</code> argument.  <code>willRelay</code>  tries to call <code>getPeer</code> on the
+<code>transport</code> instance variable of the <code>protocol</code>.  But, the minimal <code>User</code>
+object passed to <code>exists</code>, which worked for the <code>AbstractMaildirDomain</code> test,
+is not sufficient for the <code>DomainQueuer</code> test.  <code>willRelay</code> needs the <code>protocol</code>
+to determine whether it should relay the message.</p>
+
+<p>I had two thoughts about how to get around this problem, but I wasn&rsquo;t sure
+either of them was satisfactory.  One option would be to provide the <code>User</code>
+object with a fake protocol and fake transport so that <code>willRelay</code> could be
+configured to return the desired value.  That seemed to be a very roundabout
+way to solve the problem of getting <code>willRelay</code> to return a specific boolean
+value.</p>
+
+<p>A more direct way to get <code>willRelay</code> to return the desired value would be to
+monkeypatch it.  That is, as part of the unit test, to replace the
+<code>DomainQueuer.willRelay</code> function with one that returns the desired value.  The
+problem with monkeypatching is that, even though <code>willRelay</code> is part of the
+public interface of <code>DomainQueuer</code>, it could change in the future.  For
+example, it could received additional optional arguments.  Then, the unit
+test which used the monkeypatched version might not reflect the behavior of
+the real version of <code>willRelay</code>.</p>
+
+<p>I got some great advice about how to approach this problem and unit testing in
+general on the Twisted developers IRC channel.  The idea behind unit testing is
+to test each unit of code independently.  Here we can consider <code>exists</code> and
+<code>willRelay</code> to be two different units.  But the way <code>willRelay</code> is implemented
+means that it is difficult to test <code>exists</code> independent of it.  I was advised
+that sometimes the best thing to do when adding unit tests is to refactor the
+code itself.  So, I attempted to do that without changing the public interface
+of <code>DomainQueuer</code>.</p>
+
+<p>I introduced a base class, <code>AbstractRelayRules</code>, whose purpose is to
+encapsulate the rules for determining whether a message should be relayed.
+Then, I defined a subclass, <code>DomainQueuerRelayRules</code>, which contains the
+default rules for the <code>DomainQueuer</code> class.</p>
+
+<p>``` python
+class AbstractRelayRules(object):</p>
+
+<pre><code>"""
+A base class for relay rules which determine whether a message
+should be relayed.
+"""
+
+def willRelay(self, address, protocol, authorized):
+    """
+    Determine whether a message should be relayed.
+    """
+    return False
+</code></pre>
+
+<p>class DomainQueuerRelayRules(object):</p>
+
+<pre><code>"""
+The default relay rules for a DomainQueuer.
+"""
+
+def willRelay(self, address, protocol, authorized):
+    """
+    Determine whether a message should be relayed.
+
+    Relay for all messages received over UNIX sockets or from 
+    localhost or when the message originator has been authenticated.
+    """
+    peer = protocol.transport.getPeer()
+    return (authorized or isinstance(peer, UNIXAddress) or
+        peer.host == '127.0.0.1')
+</code></pre>
+
+<p>```</p>
+
+<p>In <code>DomainQueuer</code>, I changed the <code>__init__</code> function to take a new optional
+parameter specifying the rules to be used to determine whether to relay.  When
+<code>relayRules</code> is not provided, the default <code>DomainQueuerRelayRules</code> is used.  I
+also changed the <code>willRelay</code> function to ask the <code>relayRules</code> whether to relay
+instead of determining that itself.  Existing code which creates a
+<code>DomainQueuer</code> without providing the extra argument works in the exact same way
+as the old code.</p>
+
+<p>``` python
+class DomainQueuer:</p>
+
+<pre><code>def __init__(self, service, authenticated=False, relayRules=None):
+    ...
+    self.relayRules = relayRules
+    if not self.relayRules:
+        self.relayRules = DomainQueuerRelayRules()
+
+
+def willRelay(self, address, protocol):
+    """
+    Determine whether a message should be relayed according
+    to the relay rules.
+    """
+    return self.relayRules.willRelay(address, protocol, self.authed)
+</code></pre>
+
+<p>```</p>
+
+<p>Finally, I created another subclass of <code>AbstractRelayRules</code> to be used for
+test purposes. <code>TestRelayRules</code> can be configured with a boolean value which
+determines whether relaying is allowed or not.</p>
+
+<p>``` python
+class TestRelayRules(mail.relay.AbstractRelayRules):</p>
+
+<pre><code>def __init__(self, relay):
+    self.relay = relay
+
+def willRelay(self, address, protocol, authorized):
+    return self.relay
+</code></pre>
+
+<p>```</p>
+
+<p>Now, the unit tests for <code>DomainQueuer.exists</code> using <code>TestRelayRules</code> are quite
+simple.</p>
+
+<p>``` python
+class DomainQueuerTestCase(unittest.TestCase):</p>
+
+<pre><code>def test_exists(self):
+    dq = mail.relay.DomainQueuer(self.service, False, TestRelayRules(True))
+    f = dq.exists(mail.smtp.User("user@", None, None, None))
+    self.assertTrue(callable(f))
+    msg1 = f()
+    self.assertTrue(isinstance(msg1, mail.mail.FileMessage))
+    msg2 = f()
+    self.assertTrue(msg1 != msg2)
+    self.assertTrue(msg1.finalName != msg2.finalName)
+
+def test_doesntexist(self):
+    dq = mail.relay.DomainQueuer(self.service, False, TestRelayRules(False))
+    self.assertRaises(mail.smtp.SMTPBadRcpt, dq.exists,
+            mail.smtp.User("user@", None, None, None))
+</code></pre>
+
+<p>```</p>
+
+<p>Refactoring to decouple the rules for relaying messages from the
+<code>DomainQueuer</code> certainly made the unit testing code much cleaner.  As a general
+matter, difficulty in writing unit tests may highlight dependencies in the code
+which should be refactored.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Types]]></title>
@@ -43,9 +304,9 @@ twisted.mail.alias.AliasBase
 </pre>
 
 
-<p>I was trying to determine the return value of <code>createMessageReceiver</code>.
-The return value was clear for three of the four classes because the object
-to be returned was created in the return statement.</p>
+<p>I was trying to determine the return value of <code>IAlias.createMessageReceiver</code>.
+The return value was clear for three of the four classes that implement
+<code>IAlias</code> because the object to be returned was created in the return statement.</p>
 
 <pre>
 FileAlias -> FileWrapper 
@@ -79,7 +340,7 @@ def createMessageReceiver(self):
 
 <p><code>AddressAlias.createMessageReceiver</code> returns the result of a call to <code>exists</code>
 on the result of a call to <code>domain</code>.
-<code>Domain</code> is a base class function which returns an object which implements the
+<code>domain</code> is a base class function which returns an object which implements the
 <code>IDomain</code> interface.
 Fortunately, the <code>IDomain</code> interface was documented.
 It returns a callable which takes no arguments and returns an object
@@ -88,7 +349,8 @@ Unfortunately, this return value didn&rsquo;t match the pattern of the other thr
 classes implementing <code>IAlias.createMessageReceiver</code>, all of which return an
 object implementing <code>IMessage</code>.</p>
 
-<p>Although messy, it was possible that the return value of <code>IAlias.createMessage</code>
+<p>Although messy, it was possible that the return value of
+<code>IAlias.createMessageReceiver</code>
 was either an <code>smtp.IMessage</code> provider or a callable which takes no arguments
 and returns an <code>smtp.IMessage</code> provider.
 Or, it might have been a mistake.</p>
