@@ -4,7 +4,7 @@
   <title><![CDATA[Category: OPW | Measure Twice]]></title>
   <link href="http://staceysern.github.io/blog/categories/opw/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
-  <updated>2013-08-16T12:59:39-04:00</updated>
+  <updated>2013-09-08T18:25:07-04:00</updated>
   <id>http://staceysern.github.io/</id>
   <author>
     <name><![CDATA[Stacey Sern]]></name>
@@ -12,6 +12,220 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Relaying: Part I]]></title>
+    <link href="http://staceysern.github.io/blog/2013/09/08/relaying/"/>
+    <updated>2013-09-08T15:27:00-04:00</updated>
+    <id>http://staceysern.github.io/blog/2013/09/08/relaying</id>
+    <content type="html"><![CDATA[<p>My latest Twisted adventure began with a comment I came across in <code>relay.py</code>:</p>
+
+<p>```python
+class RelayerMixin:</p>
+
+<pre><code># XXX - This is -totally- bogus
+# It opens about a -hundred- -billion- files
+# and -leaves- them open!
+</code></pre>
+
+<p>```</p>
+
+<p>This seemed like a worthy problem to investigate so that, at the very least, I
+could write a ticket to track the issue.</p>
+
+<p>The first challenge was to set up a smart host configuration with Twisted.
+A smart host is a mail server which accepts mail to any address and
+then determines the mail exchange for the address and connects to it to relay
+the mail.  Unlike an open relay, a smart host imposes restrictions on the
+source of messages.  While some may accept mail only from authenticated
+senders, Twisted&rsquo;s default is to relay any mail received over a Unix socket or
+from localhost.</p>
+
+<p>It was easy enough to run a smart host on my development machine.  I just had
+to invoke <code>twistd mail</code> with the relay option and specify a directory to hold
+messages to be relayed:</p>
+
+<p><code>
+twistd -n mail --relay=/tmp/mail_queue
+</code></p>
+
+<p>The smart host uses DNS to look up mail exchanges and
+contacts them via SMTP on port 25.  Because my ISP does not allow outgoing
+traffic on port 25 and because I did not want to relay test messages to
+real mail servers, I needed to make some changes to the Twisted source so that
+the email messages would be relayed to a Twisted mail server that I ran on a
+second computer.  I modified <code>relaymanager.py</code> to relay to port 8025 and to
+use a hosts file for DNS resolution.
+``` python
+class SmartHostSMTPRelayingManager:</p>
+
+<pre><code>...
+# PORT = 25
+PORT = 8025
+...
+def _checkStateMX(self):
+    ...
+    if self.mxcalc is None:
+        # self.mxcalc = MXCalculator()
+        from twisted.names.client import createResolver
+        resolver = createResolver(None, None, b"/tmp/hosts")
+        self.mxcalc = MXCalculator(resolver)
+</code></pre>
+
+<p><code>
+The hosts file maps `example.com` and `example.net` to the IP address of the
+computer running the target mail server.
+</code>
+10.224.77.149 example.com
+10.224.77.149 example.net
+<code>``
+I configured that server to run on the default port, 8025,
+and accept mail for a few users on the domains</code>example.com<code>and</code>example.net`:</p>
+
+<p><code>
+twistd -n mail -d example.com=/tmp/example.com -u jim=pwd -u nat=pwd
+-d example.net=/tmp/example.net -u joe=pwd -u bob=pwd
+</code></p>
+
+<p>When I used telnet on the development machine to send mail to the smart host
+running on the same machine and addressed it to one of the configured users on
+example.com or example.net, the smart host relayed it to the mail server on the
+second machine.</p>
+
+<p>Now that I had a usable configuration, I wanted to explore the implications of
+the comment that <code>RelayerMixin</code> opened a large number of files and never closed
+them.  <code>RelayerMixin</code> is used to introduce a set of functions for relaying mail
+to another class, a relayer, through inheritance. On initialization, the
+relayer calls one of the <code>RelayerMixin</code> functions, <code>loadMessages</code>, with a list
+of the pathnames of messages which it is responsible for relaying.
+<code>loadMessages</code>  opens each message file and stores the file object in a list.
+I hypothesized that if I sent a lot of messages to the smart host at once, its
+relayers would open files for all the messages and hit the operating system
+limit for open files.</p>
+
+<p>I wrote a short program to send the SMTP commands for a series of messages to
+the smart host running on port 8025 of the same machine.  The messages are
+randomly destined to one of two addresses on each of the two domains served by
+the mail server on the other machine.</p>
+
+<p>```python
+from twisted.internet import protocol, reactor
+from twisted.test.proto_helpers import LineSendingProtocol
+from twisted.internet.defer import Deferred
+from random import randint</p>
+
+<p>NUM_MESSAGES = 250</p>
+
+<p>addresses = [&lsquo;<a href="&#109;&#x61;&#105;&#x6c;&#116;&#111;&#x3a;&#x6a;&#111;&#x65;&#x40;&#101;&#x78;&#x61;&#109;&#x70;&#x6c;&#x65;&#x2e;&#110;&#x65;&#116;">&#x6a;&#111;&#101;&#x40;&#x65;&#120;&#97;&#109;&#x70;&#108;&#x65;&#46;&#110;&#101;&#116;</a>&rsquo;, &lsquo;<a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#58;&#98;&#x6f;&#x62;&#x40;&#101;&#120;&#x61;&#x6d;&#x70;&#108;&#x65;&#x2e;&#110;&#x65;&#116;">&#98;&#x6f;&#x62;&#64;&#101;&#x78;&#97;&#109;&#x70;&#x6c;&#101;&#x2e;&#110;&#101;&#116;</a>&rsquo;,</p>
+
+<pre><code>         'jim@example.com', 'nat@example.com']
+</code></pre>
+
+<p>num_addrs = len(addresses) &ndash; 1</p>
+
+<p>msgs = [&lsquo;helo&rsquo;]</p>
+
+<p>for i in range(0, NUM_MESSAGES):</p>
+
+<pre><code>origin = 'foo@example.com'
+destination = addresses[randint(0, num_addrs)]
+msgs.append('mail from: &lt;{}&gt;'.format(origin))
+msgs.append('rcpt to: &lt;{}&gt;'.format(destination))
+msgs.append('data'),
+msgs.append('from {} to {}'.format(origin, destination)),
+msgs.append('hi {}'.format(destination)),
+msgs.append('.'),
+</code></pre>
+
+<p>msgs.append(&lsquo;quit&rsquo;)
+client = LineSendingProtocol(msgs)</p>
+
+<p>done = Deferred()
+f = protocol.ClientFactory()
+f.protocol = lambda: client
+f.clientConnectionLost = lambda *args: done.callback(None)</p>
+
+<p>def finished(reason):</p>
+
+<pre><code>reactor.stop()
+</code></pre>
+
+<p>done.addCallback(finished)</p>
+
+<p>reactor.connectTCP(&lsquo;127.0.0.1&rsquo;, 8025, f)
+reactor.run()
+```</p>
+
+<p>As I increased the number of messages sent, I expected to eventually see an
+exception occur when too many files were opened but that did not occur no
+matter how many messages were sent.  From the server log, I observed
+that instead of opening one connection to the mail server for each domain and
+sending all the queued messages for that domain, the smart host was repeatedly
+connecting to the mail server and sending no more than a few messages at a
+time. That explained why the limit on open files was not being reached.  The
+relayers were being handed only a few messages at a time so there was no
+need to open a lot of files at once.</p>
+
+<p>This strategy for allocating work to relayers did not seem very efficient so I
+started exploring further.  <code>SmartHostSMTPRelayingManager</code>, which implements
+the smart host functionality, has a function, <code>checkState</code>, which is called
+periodically to see if there are messages waiting to be relayed and if there is
+capacity to create new relayers.  If so, it calls <code>_checkStateMX</code> to create
+relayers and allocate messages to them.  It turns out that <code>_checkStateMX</code>
+contains a subtle bug which is the cause of the allocation behavior.</p>
+
+<p>```python</p>
+
+<pre><code>def _checkStateMX(self):
+    nextMessages = self.queue.getWaiting()
+    nextMessages.reverse()
+
+    exchanges = {}
+    for msg in nextMessages:
+        from_, to = self.queue.getEnvelope(msg)
+        name, addr = rfc822.parseaddr(to)
+        parts = addr.split('@', 1)
+        if len(parts) != 2:
+            log.err("Illegal message destination: " + to)
+            continue
+        domain = parts[1]
+
+        self.queue.setRelaying(msg)
+        exchanges.setdefault(domain, []).append(self.queue.getPath(msg))
+        if len(exchanges) &gt;= (self.maxConnections - len(self.managed)):
+            break
+</code></pre>
+
+<p><code>``
+</code><em>checkStateMX<code>asks the relay queue for a list of waiting messages.  Then it
+loops through the messages, grouping them by target domain. Eventually, each
+group will be handed off to a relayer. The problem is that</code></em>checkStateMX<code>
+breaks out of the loop as soon as it has at least one message for the maximum
+number of domains it can concurrently contact.  That value,</code>maxConnections<code>,
+is an optional parameter to</code>SmartHostSMTPRelayingManager.<strong>init</strong>`.  Its
+default value is 2.</p>
+
+<p>As <code>_checkStateMX</code> loops through the waiting messages, it creates a list of
+messages for the first domain it sees and keeps adding messages for that domain
+to the list.  When it sees a second domain, it creates another list for that
+domain but since it has hit the limit on connections, it breaks out of the
+loop.  So, any other messages in the queue for either domain must wait to be
+sent even though they could be handled by the same relayers.  Instead of
+breaking out of the loop when it reaches the connection limit, <code>_checkStateMX</code>
+should continue to add messages to the lists for the domains it has already
+seen and ignore messages for other domains.</p>
+
+<p>With the understanding of how messages are allocated to relayers, I was now
+easily able to trigger an exception for too many open files by sending a
+large number of messages to one domain instead of splitting them between two.</p>
+
+<p>As a result of this exploration, I filed two issue tickets, a defect
+<a href="https://tm.tl/#6719">ticket</a> for the handling of open files by <code>RelayerMixin</code>,
+and an enhancement <a href="https://tm.tl/#6717">ticket</a> to improve how messages
+are allocated to relayers.  I learned quite a bit more in the process of fixing
+these issues but I&rsquo;ll leave that for the next post.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Unit Tests]]></title>

@@ -4,7 +4,7 @@
   <title><![CDATA[Measure Twice]]></title>
   <link href="http://staceysern.github.io/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
-  <updated>2013-08-16T12:59:39-04:00</updated>
+  <updated>2013-09-08T18:25:07-04:00</updated>
   <id>http://staceysern.github.io/</id>
   <author>
     <name><![CDATA[Stacey Sern]]></name>
@@ -12,6 +12,288 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Relaying: Part I]]></title>
+    <link href="http://staceysern.github.io/blog/2013/09/08/relaying/"/>
+    <updated>2013-09-08T15:27:00-04:00</updated>
+    <id>http://staceysern.github.io/blog/2013/09/08/relaying</id>
+    <content type="html"><![CDATA[<p>My latest Twisted adventure began with a comment I came across in <code>relay.py</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">RelayerMixin</span><span class="p">:</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c"># XXX - This is -totally- bogus</span>
+</span><span class='line'>    <span class="c"># It opens about a -hundred- -billion- files</span>
+</span><span class='line'>    <span class="c"># and -leaves- them open!</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This seemed like a worthy problem to investigate so that, at the very least, I
+could write a ticket to track the issue.</p>
+
+<p>The first challenge was to set up a smart host configuration with Twisted.
+A smart host is a mail server which accepts mail to any address and
+then determines the mail exchange for the address and connects to it to relay
+the mail.  Unlike an open relay, a smart host imposes restrictions on the
+source of messages.  While some may accept mail only from authenticated
+senders, Twisted&rsquo;s default is to relay any mail received over a Unix socket or
+from localhost.</p>
+
+<p>It was easy enough to run a smart host on my development machine.  I just had
+to invoke <code>twistd mail</code> with the relay option and specify a directory to hold
+messages to be relayed:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="n">twistd</span> <span class="o">-</span><span class="n">n</span> <span class="n">mail</span> <span class="o">--</span><span class="n">relay</span><span class="o">=/</span><span class="n">tmp</span><span class="o">/</span><span class="n">mail_queue</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The smart host uses DNS to look up mail exchanges and
+contacts them via SMTP on port 25.  Because my ISP does not allow outgoing
+traffic on port 25 and because I did not want to relay test messages to
+real mail servers, I needed to make some changes to the Twisted source so that
+the email messages would be relayed to a Twisted mail server that I ran on a
+second computer.  I modified <code>relaymanager.py</code> to relay to port 8025 and to
+use a hosts file for DNS resolution.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">class</span> <span class="nc">SmartHostSMTPRelayingManager</span><span class="p">:</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="c"># PORT = 25</span>
+</span><span class='line'>    <span class="n">PORT</span> <span class="o">=</span> <span class="mi">8025</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>    <span class="k">def</span> <span class="nf">_checkStateMX</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mxcalc</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+</span><span class='line'>            <span class="c"># self.mxcalc = MXCalculator()</span>
+</span><span class='line'>            <span class="kn">from</span> <span class="nn">twisted.names.client</span> <span class="kn">import</span> <span class="n">createResolver</span>
+</span><span class='line'>            <span class="n">resolver</span> <span class="o">=</span> <span class="n">createResolver</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">b</span><span class="s">&quot;/tmp/hosts&quot;</span><span class="p">)</span>
+</span><span class='line'>            <span class="bp">self</span><span class="o">.</span><span class="n">mxcalc</span> <span class="o">=</span> <span class="n">MXCalculator</span><span class="p">(</span><span class="n">resolver</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The hosts file maps <code>example.com</code> and <code>example.net</code> to the IP address of the
+computer running the target mail server.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="mf">10.224</span><span class="o">.</span><span class="mf">77.149</span> <span class="n">example</span><span class="o">.</span><span class="n">com</span>
+</span><span class='line'><span class="mf">10.224</span><span class="o">.</span><span class="mf">77.149</span> <span class="n">example</span><span class="o">.</span><span class="n">net</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I configured that server to run on the default port, 8025,
+and accept mail for a few users on the domains <code>example.com</code> and <code>example.net</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="n">twistd</span> <span class="o">-</span><span class="n">n</span> <span class="n">mail</span> <span class="o">-</span><span class="n">d</span> <span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">=/</span><span class="n">tmp</span><span class="o">/</span><span class="n">example</span><span class="o">.</span><span class="n">com</span> <span class="o">-</span><span class="n">u</span> <span class="n">jim</span><span class="o">=</span><span class="n">pwd</span> <span class="o">-</span><span class="n">u</span> <span class="n">nat</span><span class="o">=</span><span class="n">pwd</span>
+</span><span class='line'><span class="o">-</span><span class="n">d</span> <span class="n">example</span><span class="o">.</span><span class="n">net</span><span class="o">=/</span><span class="n">tmp</span><span class="o">/</span><span class="n">example</span><span class="o">.</span><span class="n">net</span> <span class="o">-</span><span class="n">u</span> <span class="n">joe</span><span class="o">=</span><span class="n">pwd</span> <span class="o">-</span><span class="n">u</span> <span class="n">bob</span><span class="o">=</span><span class="n">pwd</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>When I used telnet on the development machine to send mail to the smart host
+running on the same machine and addressed it to one of the configured users on
+example.com or example.net, the smart host relayed it to the mail server on the
+second machine.</p>
+
+<p>Now that I had a usable configuration, I wanted to explore the implications of
+the comment that <code>RelayerMixin</code> opened a large number of files and never closed
+them.  <code>RelayerMixin</code> is used to introduce a set of functions for relaying mail
+to another class, a relayer, through inheritance. On initialization, the
+relayer calls one of the <code>RelayerMixin</code> functions, <code>loadMessages</code>, with a list
+of the pathnames of messages which it is responsible for relaying.
+<code>loadMessages</code>  opens each message file and stores the file object in a list.
+I hypothesized that if I sent a lot of messages to the smart host at once, its
+relayers would open files for all the messages and hit the operating system
+limit for open files.</p>
+
+<p>I wrote a short program to send the SMTP commands for a series of messages to
+the smart host running on port 8025 of the same machine.  The messages are
+randomly destined to one of two addresses on each of the two domains served by
+the mail server on the other machine.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="kn">from</span> <span class="nn">twisted.internet</span> <span class="kn">import</span> <span class="n">protocol</span><span class="p">,</span> <span class="n">reactor</span>
+</span><span class='line'><span class="kn">from</span> <span class="nn">twisted.test.proto_helpers</span> <span class="kn">import</span> <span class="n">LineSendingProtocol</span>
+</span><span class='line'><span class="kn">from</span> <span class="nn">twisted.internet.defer</span> <span class="kn">import</span> <span class="n">Deferred</span>
+</span><span class='line'><span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">NUM_MESSAGES</span> <span class="o">=</span> <span class="mi">250</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">addresses</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;joe@example.net&#39;</span><span class="p">,</span> <span class="s">&#39;bob@example.net&#39;</span><span class="p">,</span>
+</span><span class='line'>             <span class="s">&#39;jim@example.com&#39;</span><span class="p">,</span> <span class="s">&#39;nat@example.com&#39;</span><span class="p">]</span>
+</span><span class='line'><span class="n">num_addrs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">addresses</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">msgs</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;helo&#39;</span><span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">NUM_MESSAGES</span><span class="p">):</span>
+</span><span class='line'>    <span class="n">origin</span> <span class="o">=</span> <span class="s">&#39;foo@example.com&#39;</span>
+</span><span class='line'>    <span class="n">destination</span> <span class="o">=</span> <span class="n">addresses</span><span class="p">[</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_addrs</span><span class="p">)]</span>
+</span><span class='line'>    <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;mail from: &lt;{}&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">origin</span><span class="p">))</span>
+</span><span class='line'>    <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;rcpt to: &lt;{}&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">destination</span><span class="p">))</span>
+</span><span class='line'>    <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;data&#39;</span><span class="p">),</span>
+</span><span class='line'>    <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;from {} to {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">)),</span>
+</span><span class='line'>    <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;hi {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">destination</span><span class="p">)),</span>
+</span><span class='line'>    <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">),</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;quit&#39;</span><span class="p">)</span>
+</span><span class='line'><span class="n">client</span> <span class="o">=</span> <span class="n">LineSendingProtocol</span><span class="p">(</span><span class="n">msgs</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">done</span> <span class="o">=</span> <span class="n">Deferred</span><span class="p">()</span>
+</span><span class='line'><span class="n">f</span> <span class="o">=</span> <span class="n">protocol</span><span class="o">.</span><span class="n">ClientFactory</span><span class="p">()</span>
+</span><span class='line'><span class="n">f</span><span class="o">.</span><span class="n">protocol</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">client</span>
+</span><span class='line'><span class="n">f</span><span class="o">.</span><span class="n">clientConnectionLost</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">done</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="nf">finished</span><span class="p">(</span><span class="n">reason</span><span class="p">):</span>
+</span><span class='line'>    <span class="n">reactor</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">done</span><span class="o">.</span><span class="n">addCallback</span><span class="p">(</span><span class="n">finished</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">reactor</span><span class="o">.</span><span class="n">connectTCP</span><span class="p">(</span><span class="s">&#39;127.0.0.1&#39;</span><span class="p">,</span> <span class="mi">8025</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+</span><span class='line'><span class="n">reactor</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As I increased the number of messages sent, I expected to eventually see an
+exception occur when too many files were opened but that did not occur no
+matter how many messages were sent.  From the server log, I observed
+that instead of opening one connection to the mail server for each domain and
+sending all the queued messages for that domain, the smart host was repeatedly
+connecting to the mail server and sending no more than a few messages at a
+time. That explained why the limit on open files was not being reached.  The
+relayers were being handed only a few messages at a time so there was no
+need to open a lot of files at once.</p>
+
+<p>This strategy for allocating work to relayers did not seem very efficient so I
+started exploring further.  <code>SmartHostSMTPRelayingManager</code>, which implements
+the smart host functionality, has a function, <code>checkState</code>, which is called
+periodically to see if there are messages waiting to be relayed and if there is
+capacity to create new relayers.  If so, it calls <code>_checkStateMX</code> to create
+relayers and allocate messages to them.  It turns out that <code>_checkStateMX</code>
+contains a subtle bug which is the cause of the allocation behavior.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='python'><span class='line'><span class="k">def</span> <span class="nf">_checkStateMX</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span class='line'>    <span class="n">nextMessages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">getWaiting</span><span class="p">()</span>
+</span><span class='line'>    <span class="n">nextMessages</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">exchanges</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span class='line'>    <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">nextMessages</span><span class="p">:</span>
+</span><span class='line'>        <span class="n">from_</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">getEnvelope</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span><span class='line'>        <span class="n">name</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">rfc822</span><span class="o">.</span><span class="n">parseaddr</span><span class="p">(</span><span class="n">to</span><span class="p">)</span>
+</span><span class='line'>        <span class="n">parts</span> <span class="o">=</span> <span class="n">addr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;@&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span class='line'>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+</span><span class='line'>            <span class="n">log</span><span class="o">.</span><span class="n">err</span><span class="p">(</span><span class="s">&quot;Illegal message destination: &quot;</span> <span class="o">+</span> <span class="n">to</span><span class="p">)</span>
+</span><span class='line'>            <span class="k">continue</span>
+</span><span class='line'>        <span class="n">domain</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">setRelaying</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span><span class='line'>        <span class="n">exchanges</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">getPath</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+</span><span class='line'>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exchanges</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">maxConnections</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">managed</span><span class="p">)):</span>
+</span><span class='line'>            <span class="k">break</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>_checkStateMX</code> asks the relay queue for a list of waiting messages.  Then it
+loops through the messages, grouping them by target domain. Eventually, each
+group will be handed off to a relayer. The problem is that <code>_checkStateMX</code>
+breaks out of the loop as soon as it has at least one message for the maximum
+number of domains it can concurrently contact.  That value, <code>maxConnections</code>,
+is an optional parameter to <code>SmartHostSMTPRelayingManager.__init__</code>.  Its
+default value is 2.</p>
+
+<p>As <code>_checkStateMX</code> loops through the waiting messages, it creates a list of
+messages for the first domain it sees and keeps adding messages for that domain
+to the list.  When it sees a second domain, it creates another list for that
+domain but since it has hit the limit on connections, it breaks out of the
+loop.  So, any other messages in the queue for either domain must wait to be
+sent even though they could be handled by the same relayers.  Instead of
+breaking out of the loop when it reaches the connection limit, <code>_checkStateMX</code>
+should continue to add messages to the lists for the domains it has already
+seen and ignore messages for other domains.</p>
+
+<p>With the understanding of how messages are allocated to relayers, I was now
+easily able to trigger an exception for too many open files by sending a
+large number of messages to one domain instead of splitting them between two.</p>
+
+<p>As a result of this exploration, I filed two issue tickets, a defect
+<a href="https://tm.tl/#6719">ticket</a> for the handling of open files by <code>RelayerMixin</code>,
+and an enhancement <a href="https://tm.tl/#6717">ticket</a> to improve how messages
+are allocated to relayers.  I learned quite a bit more in the process of fixing
+these issues but I&rsquo;ll leave that for the next post.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Unit Tests]]></title>
