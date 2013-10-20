@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Relaying: Part I"
+title: "Relaying"
 date: 2013-09-08 15:27
 comments: true
 categories: [OPW, Twisted]
@@ -195,5 +195,4 @@ large number of messages to one domain instead of splitting them between two.
 As a result of this exploration, I filed two issue tickets, a defect
 [ticket](https://tm.tl/#6719) for the handling of open files by `RelayerMixin`,
 and an enhancement [ticket](https://tm.tl/#6717) to improve how messages
-are allocated to relayers.  I learned quite a bit more in the process of fixing
-these issues but I'll leave that for the next post.
+are allocated to relayers.  
