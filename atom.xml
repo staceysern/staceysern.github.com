@@ -4,7 +4,7 @@
   <title><![CDATA[Measure Twice]]></title>
   <link href="http://staceysern.github.io/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
-  <updated>2013-09-08T18:25:07-04:00</updated>
+  <updated>2013-10-20T10:32:00-04:00</updated>
   <id>http://staceysern.github.io/</id>
   <author>
     <name><![CDATA[Stacey Sern]]></name>
@@ -14,7 +14,7 @@
 
   
   <entry>
-    <title type="html"><![CDATA[Relaying: Part I]]></title>
+    <title type="html"><![CDATA[Relaying]]></title>
     <link href="http://staceysern.github.io/blog/2013/09/08/relaying/"/>
     <updated>2013-09-08T15:27:00-04:00</updated>
     <id>http://staceysern.github.io/blog/2013/09/08/relaying</id>
@@ -290,8 +290,7 @@ large number of messages to one domain instead of splitting them between two.</p
 <p>As a result of this exploration, I filed two issue tickets, a defect
 <a href="https://tm.tl/#6719">ticket</a> for the handling of open files by <code>RelayerMixin</code>,
 and an enhancement <a href="https://tm.tl/#6717">ticket</a> to improve how messages
-are allocated to relayers.  I learned quite a bit more in the process of fixing
-these issues but I&rsquo;ll leave that for the next post.</p>
+are allocated to relayers.</p>
 ]]></content>
   </entry>
   
