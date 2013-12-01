@@ -4,7 +4,7 @@
   <title><![CDATA[Measure Twice]]></title>
   <link href="http://staceysern.github.io/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
-  <updated>2013-10-20T10:32:00-04:00</updated>
+  <updated>2013-12-01T08:01:40-05:00</updated>
   <id>http://staceysern.github.io/</id>
   <author>
     <name><![CDATA[Stacey Sern]]></name>
@@ -287,10 +287,10 @@ seen and ignore messages for other domains.</p>
 easily able to trigger an exception for too many open files by sending a
 large number of messages to one domain instead of splitting them between two.</p>
 
-<p>As a result of this exploration, I filed two issue tickets, a defect
-<a href="https://tm.tl/#6719">ticket</a> for the handling of open files by <code>RelayerMixin</code>,
-and an enhancement <a href="https://tm.tl/#6717">ticket</a> to improve how messages
-are allocated to relayers.</p>
+<p>As a result of this exploration, I filed and submitted fixes for two issue
+tickets, a defect <a href="https://tm.tl/#6719">ticket</a> for the handling of open files
+by <code>RelayerMixin</code>, and an enhancement <a href="https://tm.tl/#6717">ticket</a> to improve
+how messages are allocated to relayers.</p>
 ]]></content>
   </entry>
   

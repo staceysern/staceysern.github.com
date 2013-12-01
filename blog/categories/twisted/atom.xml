@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Twisted | Measure Twice]]></title>
   <link href="http://staceysern.github.io/blog/categories/twisted/atom.xml" rel="self"/>
   <link href="http://staceysern.github.io/"/>
-  <updated>2013-10-20T10:32:00-04:00</updated>
+  <updated>2013-12-01T08:01:40-05:00</updated>
   <id>http://staceysern.github.io/</id>
   <author>
     <name><![CDATA[Stacey Sern]]></name>
@@ -116,7 +116,7 @@ from random import randint</p>
 
 <p>NUM_MESSAGES = 250</p>
 
-<p>addresses = [&lsquo;<a href="&#x6d;&#x61;&#105;&#x6c;&#x74;&#x6f;&#58;&#x6a;&#111;&#x65;&#x40;&#x65;&#x78;&#97;&#x6d;&#x70;&#x6c;&#101;&#x2e;&#x6e;&#x65;&#x74;">&#x6a;&#x6f;&#101;&#64;&#x65;&#x78;&#x61;&#109;&#112;&#108;&#101;&#46;&#110;&#x65;&#x74;</a>&rsquo;, &lsquo;<a href="&#109;&#97;&#x69;&#108;&#116;&#x6f;&#x3a;&#98;&#111;&#98;&#x40;&#101;&#120;&#97;&#x6d;&#x70;&#x6c;&#101;&#46;&#x6e;&#x65;&#x74;">&#98;&#111;&#x62;&#x40;&#101;&#x78;&#x61;&#x6d;&#112;&#x6c;&#x65;&#46;&#x6e;&#x65;&#x74;</a>&rsquo;,</p>
+<p>addresses = [&lsquo;<a href="&#109;&#97;&#x69;&#108;&#116;&#111;&#58;&#106;&#111;&#x65;&#x40;&#101;&#x78;&#97;&#x6d;&#112;&#108;&#101;&#46;&#110;&#101;&#116;">&#106;&#x6f;&#101;&#64;&#x65;&#120;&#97;&#x6d;&#112;&#x6c;&#x65;&#x2e;&#x6e;&#101;&#x74;</a>&rsquo;, &lsquo;<a href="&#x6d;&#97;&#x69;&#108;&#x74;&#x6f;&#x3a;&#x62;&#x6f;&#x62;&#x40;&#x65;&#x78;&#97;&#109;&#112;&#108;&#x65;&#46;&#110;&#101;&#116;">&#x62;&#x6f;&#98;&#64;&#x65;&#x78;&#x61;&#x6d;&#x70;&#108;&#x65;&#46;&#x6e;&#101;&#116;</a>&rsquo;,</p>
 
 <pre><code>         'jim@example.com', 'nat@example.com']
 </code></pre>
@@ -219,10 +219,10 @@ seen and ignore messages for other domains.</p>
 easily able to trigger an exception for too many open files by sending a
 large number of messages to one domain instead of splitting them between two.</p>
 
-<p>As a result of this exploration, I filed two issue tickets, a defect
-<a href="https://tm.tl/#6719">ticket</a> for the handling of open files by <code>RelayerMixin</code>,
-and an enhancement <a href="https://tm.tl/#6717">ticket</a> to improve how messages
-are allocated to relayers.</p>
+<p>As a result of this exploration, I filed and submitted fixes for two issue
+tickets, a defect <a href="https://tm.tl/#6719">ticket</a> for the handling of open files
+by <code>RelayerMixin</code>, and an enhancement <a href="https://tm.tl/#6717">ticket</a> to improve
+how messages are allocated to relayers.</p>
 ]]></content>
   </entry>
   
